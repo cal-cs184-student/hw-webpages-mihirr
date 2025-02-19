@@ -28,7 +28,7 @@
 	<body>
 		<div class="container">
 		<h1>CS184/284A Spring 2025 Homework 1 Write-Up</h1>
-		<div style="text-align: center;">Names: </div>
+		<div style="text-align: center;">Names: Mihir Rao</div>
 
 		<br>
 
@@ -36,77 +36,283 @@
 		
 		<br>
 
-		Link to GitHub repository: (TODO) <a href="https://cs184.eecs.berkeley.edu/sp25">cs184.eecs.berkeley.edu/sp25</a>
-
-		<figure>
-			<img src="lion.jpg" alt="Lion" style="width:50%"/>
-			<figcaption>You can add images with captions!</figcaption>
-		</figure>
+		Link to GitHub repository: <a href="https://github.com/cal-cs184-student/sp25-hw1-mrao">https://github.com/cal-cs184-student/sp25-hw1-mrao</a>
 
 		<!--
 		We've already added one heading per task, to make your write-up as navigable when grading. Please fit your write-up within these sections!
 		-->
 
 		<h2>Overview</h2>
-		Give a high-level overview of what you implemented in this homework. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the homework.
+		For this homework, I implemented various aspects of the rasterization pipeline, from basic triangle drawing to more advanced techniques like supersampling, texture mapping, and mipmapping. The goal was to render images more accurately and efficiently while improving visual quality through anti-aliasing and different sampling techniques.<br><br>
+		
+		One of the most interesting takeaways from this assignment was seeing firsthand how simple optimizations—like supersampling and bilinear filtering—can drastically improve image quality. Initially, when rendering single-color triangles, it became clear how pixelation and aliasing could negatively impact an image. Supersampling helped smooth out those rough edges, making the transitions between colors appear much more natural. Similarly, exploring texture mapping and different sampling methods showed how small choices in implementation (e.g., nearest vs. bilinear sampling) significantly affect the final image.<br><br>
+		
+		Another aspect I found fascinating was how barycentric coordinates allow for smooth interpolation across a triangle. Whether for color blending or texture mapping, they provide a natural way to transition from one vertex property to another. I didn't know about them before, but they turned out to be a really interesting and neat way to drastically improve a rendered image's quality.
 
 		<h2>Task 1: Drawing Single-Color Triangles</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		From a very high level, rasterization is the process of taking a image sample and trying to render it on a pixel screen. This process would be fairly simple for say, squares, or other rectangular shapes, but the general constraint is the width of pixels and trying to represent certain shapes. For example, drawing a triangle would require diagonal lines. But how do we know which pixels to fill? In the real world, it can be thought of as trying to travel in a diagonal on a city grid. There is no way to do that without a sequence of forward movements, with only 90 degree turnis. 
+		<br><br>Speaking from a more specific perspective, we rasterize triangles by doing the following. Say we are given three points as shown above: P0, P1, and P2. For now, let’s assume the winding order is always CCW. We will address the case when it is not shortly. As shown in the diagram, we can calculate direction vectors taking us from each point Pi to Pi+1 and eventually back to home, P0. With a CCW winding order, our normal vectors are guaranteed to point inwards. This is useful because any point inside the triangle should now have a positive dot product with all 3 of the normal vectors. As the calculations show above, we can use the 3 given vertices to construct these normal vectors and then dot it with our test point vector Pt. As the black dotted vectors show, we can see how any dot product would be positive for Pt. To address CW winding orders, we just need to check if all dot products are <=0, instead of >= 0.
 
-		<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+		<br><br> Another option would be to perform the area test, and swap two vertices depending on the sign of the result. This would ensure that our vertices, when used later on, are in a winding order of our choice.
+		
+		<figure>
+			<img src="images/task1.jpeg" alt="3LineTest" style="width:70%"/>
+			<!-- <figcaption>You can add images with captions!</figcaption> -->
+		</figure>
+
+		This algorithm is no worse than one that checks the bounding box of the triangle. As shown below:
+
+		<br><br><code>
+		int start_x = (int)floor(min(min(x0, x1), x2));<br>
+		int start_y = (int)floor(max(max(y0, y1), y2));<br>
+		int end_x = (int)floor(max(max(x0, x1), x2));<br>
+		int end_y = (int)floor(min(min(y0, y1), y2));<br>
+		</code>
+		<br>
+
+		We calculate the top left of the box(start_x, start_y) and then the lower right of the box(end_x, end_y) and perform a nested for loop search through all pixels in this box. Given the three triangle vertices, start_x is the lowest x coordinate of all three points, whereas start_y should be the greatest y coordinate. This would mean we found the top left of the box. end_x should be the greatest x coordinate, whereas end_y should be the lowest y coordinate.
+
+		<figure>
+			<img src="images/task1_test4.png" alt="Test4" style="width:70%"/>
+			<!-- <figcaption>You can add images with captions!</figcaption> -->
+		</figure>
+
+		I found this part of the scene to be interesting, as there is a discontinuity between the pixels rendered on the purple triangle, as well as on the red one.
+		
+		<h2>Task 2: Antialiasing by Supersampling</h2>
+
+		<figure>
+			<img src="images/task2_supersampling.jpg" alt="SuperSampling" style="width:70%"/>
+			<!-- <figcaption>You can add images with captions!</figcaption> -->
+		</figure>
+
+		Supersampling is a method we can use to anti-alias our triangles that we rasterize onto the screen. It eliminates jaggies, which can make images that are rendered look nicer. How does supersampling work? The main idea is smoothen intensity at areas of high frequency. What makes images unappealing to the eye is when stark changes exist - this is why slightly blurry pictures or gradient-based colors blend nicer and look better. We can use that idea here to our advantage.
+
+		<br><br>To anti-alias, we need to perform three main steps:
+		<br>1) Supersample our image by evaluating it at a square number of points within a single pixel itself.
+		<br>2) We record this data in a data structure for any fractional part of a pixel that is within our triangle.
+		<br>3) Downsample: we still need to render on our pixel-limited screen, so it becomes necessary for us to aggregate our supersampled data, and downsample it back into a representation for our real frame_buffer.
+
+		Let’s walk through the details below.
+
+		<figure>
+			<img src="images/task2_supersampling2.jpeg" alt="SuperSampling2" style="width:70%"/>
+			<!-- <figcaption>You can add images with captions!</figcaption> -->
+		</figure>
+
+		For the sake of explanation, let’s assume our sample rate is 4, meaning each single green pixel has 4 sub samples evenly spaced apart within it. Let’s look at the first row. Previously with one sample, we might have checked the single point in the middle of the green box and concluded that it is on the boundary, therefore the green pixel should receive a full color value. However, now, we have 4 samples to check. We notice that 3 of them lie outside the triangle, and hence they should not be colored, but one of them does lie inside the triangle, and it should therefore be assigned the full color value. In the third step, we downsample. The green pixel is a single pixel, so we need a way to aggregate the four values of our sub samples into one representation. We decide to average these values, and we end up with a light pink, since most of the values are 0 as they lie outside the triangle. However in the second row, you can see that half the points are within the triangle, so performing this same average would result in a single color value that is slightly darker. We can imagine that a pixel completely within our triangle would receive the full red value, as all four sub samples would be red. We modify the rasterization pipeline as follows:
+		<br>
+		<pre>
+		<code>
+		int start_index = (y * width + x) * sample_rate;<br>
+		<br>
+		for (int i = 0; i < sqrt(sample_rate); ++i) {<br>
+			for (int j = 0; j < sqrt(sample_rate); ++j) {<br>
+				float test_x = x + (1.0f / (2.0f * sqrt(sample_rate))) + (1.0f / sqrt(sample_rate)) * j;<br>
+				float test_y = y + (1.0f / (2.0f * sqrt(sample_rate))) + (1.0f / sqrt(sample_rate)) * i;<br>
+				<br>
+				float dp_0 = (test_x - x0) * v0_x + (test_y - y0) * v0_y;<br>
+				float dp_1 = (test_x - x1) * v1_x + (test_y - y1) * v1_y;<br>
+				float dp_2 = (test_x - x2) * v2_x + (test_y - y2) * v2_y;<br>
+				<br>
+				if (dp_0 >= 0 && dp_1 >= 0 && dp_2 >= 0 || dp_0 <= 0 && dp_1 <= 0 && dp_2 <= 0) {<br>
+					sample_buffer[start_index + i * sqrt(sample_rate) + j] = color;<br>
+				}<br>
+			}
+			<br>
+		}<br>
+		</code>
+		</pre>
+
+		Previously, we could just call fill_pixel, but now we need to
+		<br>
+		<br>1) sample each point within the pixel(supersample) and
+		<br>2) write directly to the sample_buffer, since fill_pixel fills the ENTIRE pixel with the same value, which is not what we want.
+		<br>
+		<br>I needed to modify fill_pixel to set the sample_buffer’s sample_rate amount of values to color, not just assume 1 sample. Lastly, we needed to modify the size of the data structures, multiplying by our sample_rate.
+		
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="lion.jpg" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
-				</td>
-				<td style="text-align: center;">
-				  <img src="lion.jpg" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="images/task2_subsampling_rate_1.png" width="700px"/>
+				  <figcaption>Sample Rate: 1 - We see a major discontinuity when rendering the super fine tip of this triangle.</figcaption>
 				</td>
 			  </tr>
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="lion.jpg" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="images/task2_subsampling_rate_4.png" width="700px"/>
+				  <figcaption>Sample Rate: 4 - This looks much better than the previous one, with a more gradual fade to white, and no discontinuity.</figcaption>
 				</td>
+			  </tr>
+			  <tr>
 				<td style="text-align: center;">
-				  <img src="lion.jpg" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="images/task2_subsampling_rate_16.png" width="700px"/>
+				  <figcaption>Sample Rate: 16 - Similar to the last one, 16 samples has no discontinuity and blends the color from a sharp red to white gradually. This makes finer tips and shapes look better, without jaggies.</figcaption>
 				</td>
 			  </tr>
 			</table>
 		</div>
-		
-		<h2>Task 2: Antialiasing by Supersampling</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+		<br>
+		As we can see on the left, increasing the sample rate means we split each pixel into more sub samples, allowing us to have finer grain approximations that represent smoother frequency changes in our image. In short, it means that drastic changes in image color are smoothen out over several pixels, rather than just, say, two.
 
 		<h2>Task 3: Transforms</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+		<figure>
+			<img src="images/task3_robot.png" alt="SuperSampling2" style="width:70%"/>
+			<figcaption>A goalie trying to make the greatest save in history!</figcaption>
+		</figure>
+
+		I made the cube an become a goalie who is jumping up trying to save a goal by stretching his hands as high up as possible. To achieve this, I had to perform rotations on the cubeman’s arms and legs, and translate them appropriately so there were no overlaps between the rectangles forming the bones.
 
 		<h2>Task 4: Barycentric coordinates</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+		We can model the general idea of a continuous unit within a triangle using barycentric coordinates. Specifically, they're a way of interpolating a point within a triangle and defining your "position" at that point through a weighted average of the vertex values. A potential analogy could be that, imagine you’re trying to balance on a triangular trampoline. Each corner of the trampoline has a different level of tension, and where you stand determines how much each corner is pulling you. Mathematically, these coordinates are just weights that say how much of each corner contributes to your position. They always sum to 1, like distributing your total weight across the trampoline.
+
+		<br>
+		<br>
+
+		In short, they're a gradual way to get from one state(color, position, texture, etc...) to another over a non-negligible variation in space.
+
+		<figure>
+			<img src="images/task4_triangle.png" alt="Triangle" style="width:70%"/>
+		</figure>
+
+		<figure>
+			<img src="images/task4_color_wheel.png" alt="SuperSampling2" style="width:70%"/>
+			<figcaption>Color Wheel</figcaption>
+		</figure>
 
 		<h2>Task 5: "Pixel sampling" for texture mapping</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+		<figure>
+			<img src="images/task5_alpha.png" alt="Alpha" style="width:70%"/>
+		</figure>
+
+		At first glance, these formulas seem rather complex and out of the blue, but they actually intuitely make sense when we think about them as descendents of our original 3 line test formulas. Notice the numerator for alpha, which is just the dot product of the normal vector to CB and the vector from B to (x, y). Previously, we checked this value to see if it was >0, which indicated that (x, y) was on the same side as the normal vector to BC. Now, we treat the dot product as some function of how far away (x, y) is from the line BC. Therefore, if we divide this value by the distance the opposite point(A in this case) is from BC, which again is proportional to A's dot product with BC's orthogonal vector, we get a value alpha that encapsulates this exact idea. We can do this for 2 sides of the triangle, and let gamma be the third factor that makes our sum == 1. To conclude, we can set our "blended" value at position (x, y) to be the weighted sum of our vertex values. This can also be written as the dot product of (A, B, C) and (alpha, beta, gamma).
+
+		<figure>
+			<img src="images/task5_barycentric.png" alt="Barycentric" style="width:70%"/>
+		</figure>
+
+		To complete this task, we can start off with largely the same code for triangle rasterization as before. The only difference would be that instead of assigning each pixel in the triangle to the same passed in color, we would use barycentric coordinates as described above with the vertex values and created a weighted color for that specific region in the triangle.<br><br>
+		
+		<code>
+			float alpha = (-(test_x - x1) * (y2 - y1) + (test_y - y1) * (x2 - x1))/(-(x0 - x1) * (y2 - y1) + (y0 - y1) * (x2 - x1));<br>
+			float beta = (-(test_x - x2) * (y0 - y2) + (test_y - y2) * (x0 - x2))/(-(x1 - x2) * (y0 - y2) + (y1 - y2) * (x0 - x2));<br>
+			float gamma = 1 - alpha - beta;<br><br>
+			float u = alpha * u0 + beta * u1 + gamma * u2;<br>
+			float v = alpha * v0 + beta * v1 + gamma * v2;<br><br>
+			SampleParams sp;<br>
+			sp.p_uv = Vector2D(u, v);<br>
+			<br>
+			if (psm == P_NEAREST) {<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;sample_buffer[start_index + i * sqrt(sample_rate) + j] = tex.sample_nearest(sp.p_uv, 0);<br>
+			} else if (psm == P_LINEAR) {<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;sample_buffer[start_index + i * sqrt(sample_rate) + j] = tex.sample_bilinear(sp.p_uv, 0);<br>
+			}
+		</code>
+		<br>
+		<br>
+
+		Now for texture mapping! Once we calculate our u and v values, we need to index them in texture space to assign a color. In this task, our triangle vertices are assigned a texture map position (u_i, v_i) and not a color, but we can still interpolate to figure out the texture color that we need to assign. To do this, there are two options. We'll cover nearest sampling first, and then bilinear.<br><br>
+
+		For nearest sample, all we need to do is scale our (u, v) by the texture map width and height, respectively, and return the value of the nearest texel at this point. This can be done simply with <code>int tx = round(uv.x * (mip.width - 1)); int ty = round(uv.y * (mip.height - 1)); return mip.get_texel(tx, ty);</code>.<br><br>
+
+		For bilinear sampling, we use the interpolation formulas listed below. Instead of rounding to the nearest coordinate, we sample all the nearest direct texels, and interpolate between them.
+
+		<figure>
+			<img src="images/task5_texturing.jpeg" alt="TexturingInterp" style="width:70%"/>
+		</figure>
+
+		Here is a comparison of the two sampling methods, with nearest sampling on the left and bilinear sampling on the right.
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="images/task5_nn_1.png" width="700px"/>
+				  <figcaption>Sampling Method: Nearest Neighbor, Sample Rate: 1</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="images/task5_b_1.png" width="700px"/>
+					<figcaption>Sampling Method: Bilinear, Sample Rate: 1</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="images/task5_nn_16.png" width="700px"/>
+				  <figcaption>Sampling Method: Nearest Neighbor, Sample Rate: 16</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="images/task5_b_16.png" width="700px"/>
+					<figcaption>Sampling Method: Bilinear, Sample Rate: 16</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
+
+		<br>
+		Even with significantly lower sample rate, the bilinear method performs arguably better than nearest neighbor's 16x sample rate. There are no jaggies, and the colors gradually shift as opposed to the nearest neighbor images. There are also no discontinuites, and the image lines flow much nicer. There will be larger differences between these two methods when the resolution is lower, as bilinear's smoothing effect would be more drastic. At much higher resolutions, the difference would probably be less apparent.
+
 
 		<h2>Task 6: "Level Sampling" with mipmaps for texture mapping</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		Often times, we need varying levels of texture maps to match certain frequncies/patterns in our images. Depending on the frequency of the sampled region in our image, we can choose varying mipmap levels to sample from. They would yield the appropriate amount of detail needed to ensure our image isn't too blurry or jagged. Specifically, level sampling selects a mipmap level based on the rate of change of texture coordinates. If we end up seeing a signficant difference in texture within a small region, a higher mipmap level is chosen to produce smoother patches, and vice versa. Specifically, we use the dx_duv and dy_duv differentials to calculate the area change as specific in lecture, and as shown below:
 
-		<h2>(Optional) Task 7: Extra Credit - Draw Something Creative!</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<figure>
+			<img src="images/task6_d_calc.png" alt="D Calc" style="width:70%"/>
+		</figure>
 
-		<h2>Additional Notes (please remove)</h2>
-		<ul>
-			<li>You can also add code if you'd like as so: <code>code code code</code></li>
-			<li>If you'd like to add math equations, 
-				<ul>
-					<li>You can write inline equations like so: \( a^2 + b^2 = c^2 \)</li>
-					<li>You can write display equations like so: \[ a^2 + b^2 = c^2 \]</li>
-				</ul>
-			</li>
-		</ul>
+		Just like we did above, we calculate two new sets of u and v, the dot product of our barycentric weights and position vectors with a 1 unit differential in each direction of x and y. These will have their own barycentric weights, which we dot with again to obtain 3 sets of u, v coordinates. We then initialize a SampleParams struct to hold this data, and texture's get_level function computes our mipmap level D as per the formula above. After this point, we sample based on the psm type in a very similar fashion to task 5.
+
+		<h3>Pixel Sampling</h3>
+		<b>Speed)</b> Fast, as there is minimal computation and we perform no interpolation for nearest neighbor. Bilinear would perform more computation, but still minimal<br>
+		<b>Memory)</b> Minimal, as we don't store mipmaps or any other intensive data structures for this method.<br>
+		<b>Anti-Aliasing)</b> Nearest neighbor results in jaggies, but bilinear does a better job smoothing out high frequency areas.<br>
+		<h3>Level Sampling</h3>
+		<b>Speed)</b> Fairly fast, as we have texture maps already available to us. We just need to read them at a given position.<br>
+		<b>Memory)</b> Larger, since we need to store this mipmap somewhere.<br>
+		<b>Anti-Aliasing)</b> Reduces jaggies and aliasing, but for scenes with drastic variety in terms of frequency/shape, a single mipmap may look distorted. Using multiple mipmaps would help, and we'd get finer grain control of image quality.<br>
+		<h3>Number of Samples/Pixel</h3>
+		<b>Speed)</b> Slower, since each pixel is sampled multiple times, and additional computation is needed.<br>
+		<b>Memory)</b> Larger, because we need to store more information about inter-pixel samples in a buffer for later computation.<br>
+		<b>Anti-Aliasing)</b> Significantly improves anti-aliasing and jaggies.<br>
+
+		<p>
+		(Image PNG Credit: https://pixabay.com/illustrations/automobile-vehicle-porsche-8217167/)
+		</p>
+
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="images/task6_zero_nearest.png" width="700px"/>
+				  <figcaption>Image 1: L_ZERO + P_NEAREST</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="images/task6_zero_linear.png" width="700px"/>
+					<figcaption>Image 2: L_ZERO + P_LINEAR</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="images/task6_nearest_nearest.png" width="700px"/>
+				  <figcaption>Image 3: L_NEAREST + P_NEAREST</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="images/task6_nearest_linear.png" width="700px"/>
+					<figcaption>Image 4: L_NEAREST + P_LINEAR</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
+
+		<br>
+		<b>Image 1:</b> Sharp changes in color, and doesn't appear to be very smooth. Even looking at the image overall is slightly piercing, as there is a lot of high contrast + high frequency areas.<br><br>
+		<b>Image 2:</b> Slightly better, as colors are smoothed out a bit more and the image doesn't look as pixelated. The image still looks a little blocky though.<br><br>
+		<b>Image 3:</b> This still looks very pixely, and you can see from the zoomed in view that the colors don't blend in too well. It still seems like there isn't much of a gradient being developed to ease some colors into the others.<br><br>
+		<b>Image 4:</b> This is by far the best, as the high contrast areas near the mirror look very smooth now. The curves of the paint reflection also look much nicer and gradual, and there aren't any pixel heavy features.<br><br>
+
 		</div>
 	</body>
 </html>
