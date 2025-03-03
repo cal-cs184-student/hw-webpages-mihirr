@@ -28,7 +28,7 @@
 	<body>
 		<div class="container">
 		<h1>CS184/284A Spring 2025 Homework 2 Write-Up</h1>
-		<div style="text-align: center;">Names: </div>
+		<div style="text-align: center;">Names: Mihir Rao</div>
 
 		<br>
 
@@ -53,64 +53,273 @@
 		<h2>Section I: Bezier Curves and Surfaces</h2>
 
 		<h3>Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		de Casteljau subdivision is an algorithm we can use to generate bezier curves given n control points. From a high level, let's start by looking at the 4 control points. In words, this algorithm using a simple interpolation to subdivide each line until you're only left with one point. The key mathematical principle is the idea that given parameter t that ranges from 0 to 1, we can scale each endpoint of a line respectively and use superposition to end up with a point that travels from starting position p0 to ending position p1 as t goes from 0 to 1. This is what is done using linear interpolation. Say we have two points: p0 and p1 where p0 is the starting position and p1 is our target position. When t = 0, we want to be at position p0. Hence, a full contribution of p0 is required and we want 0 contribution from p1. This gives us the following equation: (1 - t) * p0 + t * p1. To verify, when t = 1, we should be at p1. This is indeed the case, because (1 - 1) * p0 + 1 * p1 = p1. As we can see, repeatedly doing this over and over for each line, and connecting the interpolated points themselves through a line will result in a single point that generates our bezier curve.
+		<br>
+		<br>
 
-		<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
-		<div style="display: flex; flex-direction: column; align-items: center;">
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="bezier1.png" width="500px"/>
+				  <figcaption>6 Control Points</figcaption>
 				</td>
 				<td style="text-align: center;">
-				  <img src="teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="bezier2.png" width="500px"/>
+				  <figcaption>5 Control Points</figcaption>
 				</td>
 			  </tr>
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="bezier3.png" width="500px"/>
+				  <figcaption>4 Control Points</figcaption>
 				</td>
 				<td style="text-align: center;">
-				  <img src="teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="bezier4.png" width="500px"/>
+				  <figcaption>3 Control Points</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="bezier5.png" width="500px"/>
+				  <figcaption>2 Control Points</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="bezier6.png" width="500px"/>
+				  <figcaption>Final Curve Point</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="bezier7.png" width="500px"/>
+				  <figcaption>Final Bezier Curve</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="bezier8.png" width="500px"/>
+				  <figcaption>Adjusted Bezier Curve</figcaption>
 				</td>
 			  </tr>
 			</table>
 		</div>
 
 		<h3>Part 2: Bezier surfaces with separable 1D de Casteljau</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		Bezier surfaces work very similarly to bezier curves, just in another dimension. In fact, in the simplest description, they can be considered bezier curves just interpolated many times. To start, let's look at the diagram below. Imagine we treat each color line as it's own bezier curve. In essense, imagine controlPoints[0] represented the red curve, controlPoints[1] represents green, and controlPoints[2] represents orange. Then, all we need to do to generate our bezier surface is to fully interpolate each controlPoints[i] to get the black X points, and then assume each black X point forms its own bezier curve, and then fully interpolate that. In the code, this is exactly what we do. First, we write evaulateStep which does the same thing as in part 1 but for 3D points instead of 2D. Then, we call evaluate1D, which calls evaulateStep however many times it needs to in order to get the single curve point(black X). Note that all of this is done with the parameter u. Then, evaluate can be thought of as a function that, for each controlPoints[i], fully interpolates it, collects all the black X points, and then fully interpolates those points with the parameter v. That's it!
+		
+		<figure>
+			<img src="bezier_surface.jpeg" alt="Bezier Surface" style="width:75%; padding-top: 50px;"/>
+			<figcaption>Bezier Surface Breakdown</figcaption>
+		</figure>
+
+		<figure>
+			<img src="bezier_surface_teapot.png" alt="Bezier Teapot" style="width:75%"/>
+			<figcaption>Teapot</figcaption>
+		</figure>
 
 		<h2>Section II: Triangle Meshes and Half-Edge Data Structure</h2>
 
 		<h3>Part 3: Area-weighted vertex normals</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		To calculate a weighted normal vector, we need to perform three main steps sequentially: 1) loop through all faces that the given vertex is part of, for each face(if not boundary face) calculate the normal vector and scale it by the area of the face, aggregate all these normals across all f faces, and then normalize the vector. This will bias the final weighted normal towards faces with greater area. Implementing this is quite straightforward - to iterate through faces of the given vertex, we get the current halfedge's twin and it's next edge, leading us to be able to access the next face.
+
+		<pre>
+		<code>
+			Vector3D weighted_normal = Vector3D(0, 0, 0);
+
+			HalfedgeCIter h = halfedge();
+			bool visited = false;
+
+			while(h != halfedge() || visited == false) {
+				visited = true;
+				
+				if (!h->face()->isBoundary()) {
+					Vector3D v0 = position;
+					Vector3D v1 = h->next()->vertex()->position;
+					Vector3D v2 = h->next()->next()->vertex()->position;
+
+					// We need to divide by 2, parallelogram -> triangle area.
+					weighted_normal += (cross(v2 - v1, v1 - v0).norm() / 2) * h->face()->normal();
+				}
+
+				h = h->twin()->next();
+			}
+
+			return weighted_normal / weighted_normal.norm();
+		</code>
+		</pre>
+
+		Since we can indefinitely loop in a circle, we add a visited variable to make sure we don't terminate the loop before we've actually visited any vertex. In retrospect, this could also be solved using a do-while loop. We then cross two vectors that form this triangle, and the magnitude of that cross product is the area of the parallelogram formed by the two vectors. Thus, we need to divide this by 2 to get the area of the triangle. We can then sum all of these up and then normalize it to get our weighted normal vector.
+
+		<figure>
+			<img src="weighted_normals.png" alt="Weighted Normal Explanation" style="width:75%; padding-top: 50px;"/>
+			<figcaption>Weighted Normal Iteration</figcaption>
+		</figure>
+
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="weighted_normal_1.png" width="550px"/>
+				  <figcaption>Before Weighted Area Normal</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="weighted_normal_2.png" width="550px"/>
+				  <figcaption>After Weighted Area Normal</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h3>Part 4: Edge flip</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		I first made an assuption of what the goal state would look like. For simplicity, I assume we begin with a vertical edge e0 as shown in the diagram on the left. To keep track of everything that would change, I save every halfedge, edge, vertex, and face in the before stage, and I name them appropriately based on where these elements should go given my earlier assumption. Then, I pretend the edge was actually horizontal and not vertical. In that case, I can just reassign every halfedge, edge, vertex, and face to follow the nomenclature on the right diagram. If I reassign everything from scratch, then it makes it significantly easier. I got pretty lucky with debugging, because I had just one issue which was in the first line and I was able to catch it quite quickly(I was assigned h_left_top's vertex as v_left instead of v_top). However, drawing the diagrams out and having an overall plan to save every previous element and then reassign really helped. It made  my code more verbose but significantly easier to understand. Instead of an eventful debugging journey, I had a thorough drawing session to try and make sure this worked close to first try, and the result of that are the diagrams below.
+
+		<figure>
+			<img src="flip_edge.jpeg" alt="Flipping An Edge" style="width:100%; padding-top: 50px;"/>
+			<figcaption>Flipping An Edge</figcaption>
+		</figure>
+
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="flip1.png" width="550px"/>
+				  <figcaption>Teapot Flipped Edge 1</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="flip2.png" width="550px"/>
+				  <figcaption>Teapot Flipped Edge 2</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="flip3.png" width="550px"/>
+				  <figcaption>Teapot Flipped Edge 3</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="flip4.png" width="550px"/>
+				  <figcaption>Teapot Flipped Edge 4</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h3>Part 5: Edge split</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		Edge-splitting is the process of creating sub-triangles given an existing triangle. More specifically, if we have an edge dividing and forming two neighboring triangles, we can split this edge to create 4 triangles. This operation is useful when we want to upsample or increasing the resolution of our mesh. I used an approach very similar to the previous part. My first thought was to delete the splitting edge, but then I realized that as long as we move it up and re-interpret it as half of the original edge, then there would be no need to do that. To start, I drew out what the normal pre-split diagram would look like. Below, that diagram is the one above. Then, assuming the split is successful, I drew out what elements would need to be added(halfedges, edges, new central vertex, faces). At this point, it became easy to reassign every element's attributes based on the revised edge-split diagram. To debug, luckily I didn't have too much trouble. At first, I had a few bugs with vertex assignment when updating the halfedges but after reading the code thoroughly I was able to catch them fairly quickly. 
+
+		<figure style="padding-top: 50px;">
+			<img src="edge_split.jpeg" alt="Splitting An Edge" style="width:100%"/>
+			<figcaption>Splitting An Edge</figcaption>
+		</figure>
+
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="edge_split1.png" width="550px"/>
+				  <figcaption>Before Edge Splits</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="edge_split2.png" width="550px"/>
+				  <figcaption>After Single Edge Split</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="edge_split3.png" width="550px"/>
+				  <figcaption>After Multiple Edge Splits</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="edge_split4.png" width="550px"/>
+					<figcaption>After Flips & Edge Splits</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
 		<h3>Part 6: Loop subdivision for mesh upsampling</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		Loop subdivision is a method for refining triangular meshes to create smoother surfaces by increasing the number of triangles while adjusting vertex positions. First, we compute new positions for all existing vertices based on the loop subdivision rule, storing these positions while marking them as original mesh vertices. Next, new vertex positions are computed for each edge and stored accordingly. The mesh is then refined by splitting all original edges, ensuring that newly created edges are identified separately. Specifically, this is taken care of in split edge, where we set the isNew attributes such that the upsample function can differentiate new vertices and edges in the next step. Specifically, it's used to flip any new edge that connects an old vertex to a new vertex. Lastly, the newly computed vertex positions are applied to update the mesh, completing the subdivision process.
+		
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 25px; padding-bottom: 25px;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="upsample_cube_1.png" width="550px"/>
+				  <figcaption>Raw Cube</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="upsample_cube_2.png" width="550px"/>
+				  <figcaption>Cube Upsampled Once</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="upsample_cube_3.png" width="550px"/>
+				  <figcaption>Cube Upsampled Twice</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="upsample_cube_4.png" width="550px"/>
+					<figcaption>Cube Upsampled Thrice</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
 
-		<h2>(Optional) Section III: Potential Extra Credit - Art Competition: Model something Creative</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		For simplicity, let's take a look at the cube file. Sharper features tend to smoothen out becausewe create edges and we're in a sense averaging out the change between each mesh triangle. Which is why, if we add relatively more triangles towards points which we want to keep sharp, upsampling will have less of an averaging effect and will tend to smoothen out our mesh less. As shown below, we split the edges near the selected vertex and then upsample. When we rotate the cube and view it from the side, we can see that the vertex and feature around the original vertex is much sharper.
 
-		<h2>Additional Notes (please remove)</h2>
-		<ul>
-			<li>You can also add code if you'd like as so: <code>code code code</code></li>
-			<li>If you'd like to add math equations, 
-				<ul>
-					<li>You can write inline equations like so: \( a^2 + b^2 = c^2 \)</li>
-					<li>You can write display equations like so: \[ a^2 + b^2 = c^2 \]</li>
-				</ul>
-			</li>
-		</ul>
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px; padding-bottom: 25px;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="sharp_feature_1.png" width="550px"/>
+				  <figcaption>Vertex In Question</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="sharp_feature_2.png" width="550px"/>
+				  <figcaption>Split Edges Near Vertex</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="sharp_feature_3.png" width="550px"/>
+				  <figcaption>Maintains Sharper Feature</figcaption>
+				</td>
+			  </tr>
+			</table>
+		</div>
+
+		The main reason the cube becomes assymetrical is because the original DAE file has faces that are asymmetrical. Upsampling just increases resolution, but the underlying mesh will remain asymmetrical. To fix this, we can simple split each of the edges on the faces to create a symmetrical mesh. Then if we upsample, we get the first 4 images below(Figure 1-4). To further test, we can continue to split each edge so that there's higher resolution on the sharper parts of the cube, and then the cube will also remain symmetrical. If we upsample that, we get the last two images below(Figure 5-6). Notice the visibility of the edge points in the upsampled mesh that poke out - as we increase resolution on the edges, these will fade away as we continue to upsample.
+
+		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="cube_straight_1.png" width="550px"/>
+				  <figcaption>Figure 1</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="cube_straight_2.png" width="550px"/>
+				  <figcaption>Figure 2</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="cube_straight_3.png" width="550px"/>
+				  <figcaption>Figure 3</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="cube_straight_4.png" width="550px"/>
+					<figcaption>Figure 4</figcaption>
+				</td>
+			  </tr>
+			  <tr>
+				<td style="text-align: center;">
+				  <img src="cube_straight_5.png" width="550px"/>
+				  <figcaption>Figure 5</figcaption>
+				</td>
+				<td style="text-align: center;">
+					<img src="cube_straight_6.png" width="550px"/>
+					<figcaption>Figure 6</figcaption>
+				</td>
+			  </tr>
+			</table>
 		</div>
 	</body>
 </html>
