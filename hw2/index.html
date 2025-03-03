@@ -32,15 +32,15 @@
 
 		<br>
 
-		Link to webpage: (TODO) <a href="https://cs184.eecs.berkeley.edu/sp25">cs184.eecs.berkeley.edu/sp25</a>
+		Link to webpage: <a href="https://cal-cs184-student.github.io/hw-webpages-mihirr/hw2/index.html">https://cal-cs184-student.github.io/hw-webpages-mihirr/hw2/index.html</a>
 
 		<br>
 		
-		Link to GitHub repository: (TODO) <a href="https://cs184.eecs.berkeley.edu/sp25">cs184.eecs.berkeley.edu/sp25</a>
+		Link to GitHub repository: <a href="https://github.com/cal-cs184-student/sp25-hw2-mihir">https://github.com/cal-cs184-student/sp25-hw2-mihir</a>
 
 		<figure>
 			<img src="teapot.png" alt="Teapot" style="width:50%"/>
-			<figcaption>You can add images with captions!</figcaption>
+			<figcaption>Teapot!</figcaption>
 		</figure>
 
 		<!--
@@ -48,7 +48,9 @@
 		-->
 
 		<h2>Overview</h2>
-		Give a high-level overview of what you implemented in this homework. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the homework.
+		In this homework, I implemented Bézier curves and surfaces, as well as algorithms to manipulate and upsample triangle meshes. Through these implementations, I explored how interpolation and recursive subdivision techniques can be used to generate smooth curves and surfaces. One of the most interesting aspects of this homework was understanding how simple mathematical principles like linear interpolation, in de Casteljau’s algorithm, scale up to create complex, smooth curves and surfaces. I was especially fascinated when I dug into the bezier curve files and found out how you can create teapots and other cool objects so elegantly. I also found learning and using the halfedge data structure(s) to be extremely fun. I'd always wondering how managing these triangles would work in such a mesh, but by implementing edge flip and split, along with upsampling, a lot of the gaps that I had in my knowledge started to make sense.
+		<br><br>
+		In this project, we worked on manipulating and enhancing a given mesh, but in the future, I want to learn more about how rendering software takes objects and generates the mesh in the first place.
 
 		<h2>Section I: Bezier Curves and Surfaces</h2>
 
@@ -103,7 +105,7 @@
 		</div>
 
 		<h3>Part 2: Bezier surfaces with separable 1D de Casteljau</h3>
-		Bezier surfaces work very similarly to bezier curves, just in another dimension. In fact, in the simplest description, they can be considered bezier curves just interpolated many times. To start, let's look at the diagram below. Imagine we treat each color line as it's own bezier curve. In essense, imagine controlPoints[0] represented the red curve, controlPoints[1] represents green, and controlPoints[2] represents orange. Then, all we need to do to generate our bezier surface is to fully interpolate each controlPoints[i] to get the black X points, and then assume each black X point forms its own bezier curve, and then fully interpolate that. In the code, this is exactly what we do. First, we write evaulateStep which does the same thing as in part 1 but for 3D points instead of 2D. Then, we call evaluate1D, which calls evaulateStep however many times it needs to in order to get the single curve point(black X). Note that all of this is done with the parameter u. Then, evaluate can be thought of as a function that, for each controlPoints[i], fully interpolates it, collects all the black X points, and then fully interpolates those points with the parameter v. That's it!
+		Bezier surfaces work very similarly to bezier curves, just in another dimension. In fact, in the simplest description, they can be considered bezier curves just interpolated many times. To start, let's look at the diagram below. Imagine we treat each color line as it's own bezier curve. In essense, imagine controlPoints[0] represented the red curve, controlPoints[1] represents green, and controlPoints[2] represents orange. Then, all we need to do to generate our bezier surface is to fully interpolate each controlPoints[i] to get the black X points, and then assume each black X point forms its own bezier curve, and then fully interpolate that. In the code, this is exactly what we do. First, we write evaulateStep which does the same thing as in part 1 but for 3D points instead of 2D. Then, we call evaluate1D, which calls evaulateStep however many times it needs to in order to get the single curve point(black X). Note that all of this is done with the parameter u. Then, evaluate can be thought of as a function that, for each controlPoints[i], fully interpolates it, collects all the black X points, and then fully interpolates those points with the parameter v.
 		
 		<figure>
 			<img src="bezier_surface.jpeg" alt="Bezier Surface" style="width:75%; padding-top: 50px;"/>
