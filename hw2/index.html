@@ -264,23 +264,23 @@
 			</table>
 		</div>
 
-		For simplicity, let's take a look at the cube file. Sharper features tend to smoothen out becausewe create edges and we're in a sense averaging out the change between each mesh triangle. Which is why, if we add relatively more triangles towards points which we want to keep sharp, upsampling will have less of an averaging effect and will tend to smoothen out our mesh less. As shown below, we split the edges near the selected vertex and then upsample. When we rotate the cube and view it from the side, we can see that the vertex and feature around the original vertex is much sharper.
+		For simplicity, let's take a look at the icosahedron file. Sharper features tend to smoothen out because we create edges and we're in a sense averaging out the change between each mesh triangle. Which is why, if we add relatively more triangles towards points which we want to keep sharp, upsampling will have less of an averaging effect and will tend to smoothen out our mesh less. As shown below, we split the edges near the selected vertex and then upsample. When we rotate the shape and view it from the side, we can see that the vertex and feature around the original vertex is much sharper.
 
 		<div style="display: flex; flex-direction: column; align-items: center; padding-top: 50px; padding-bottom: 25px;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="sharp_feature_1.png" width="550px"/>
+				  <img src="retain_sharpness_1.png" width="550px"/>
 				  <figcaption>Vertex In Question</figcaption>
 				</td>
 				<td style="text-align: center;">
-				  <img src="sharp_feature_2.png" width="550px"/>
+				  <img src="retain_sharpness_2.png" width="550px"/>
 				  <figcaption>Split Edges Near Vertex</figcaption>
 				</td>
 			  </tr>
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="sharp_feature_3.png" width="550px"/>
+				  <img src="retain_sharpness_3.png" width="550px"/>
 				  <figcaption>Maintains Sharper Feature</figcaption>
 				</td>
 			  </tr>
